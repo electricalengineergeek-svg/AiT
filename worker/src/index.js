@@ -96,23 +96,35 @@ async function verifyTelegramInitData(initData, botToken, maxAuthAgeSec) {
   return user;
 }
 
-async function insertLaunch(env, row) {
-  const endpoint = `${env.SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/telegram_launches`;
+function supabaseHeaders(env, prefer = null) {
+  const headers = {
+    apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+    'Content-Type': 'application/json'
+  };
 
-  const response = await fetch(endpoint, {
+  if (prefer) {
+    headers.Prefer = prefer;
+  }
+
+  return headers;
+}
+
+async function upsertLaunchByUserId(env, row) {
+  const endpoint = `${env.SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/telegram_launches?on_conflict=user_id`;
+
+  const insertResponse = await fetch(endpoint, {
     method: 'POST',
-    headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=minimal'
-    },
-    body: JSON.stringify(row)
+    headers: supabaseHeaders(env, 'resolution=merge-duplicates,return=minimal'),
+    body: JSON.stringify({
+      ...row,
+      created_at: new Date().toISOString()
+    })
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Supabase insert failed (${response.status}): ${text}`);
+  if (!insertResponse.ok) {
+    const text = await insertResponse.text();
+    throw new Error(`Supabase insert failed (${insertResponse.status}): ${text}`);
   }
 }
 
@@ -180,7 +192,7 @@ export default {
     };
 
     try {
-      await insertLaunch(env, row);
+      await upsertLaunchByUserId(env, row);
       return jsonResponse({ ok: true }, 201, allowedOrigin);
     } catch (error) {
       return jsonResponse({ ok: false, error: error.message }, 502, allowedOrigin);
