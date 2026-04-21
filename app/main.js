@@ -3,6 +3,9 @@
 // Initialize Telegram Web App
 const tg = window.Telegram?.WebApp || null;
 const GOOGLE_ANALYTICS_ID = 'G-GY091TN67D';
+const TELEMETRY_SUPABASE_URL = window.AIT_SUPABASE_URL || '';
+const TELEMETRY_SUPABASE_ANON_KEY = window.AIT_SUPABASE_ANON_KEY || '';
+const LAUNCH_TRACK_FLAG = 'ait_telegram_launch_tracked';
 
 /**
  * Check whether app is opened inside Telegram Mini App container.
@@ -10,6 +13,92 @@ const GOOGLE_ANALYTICS_ID = 'G-GY091TN67D';
  */
 function isTelegramMiniApp() {
   return Boolean(tg && tg.initData);
+}
+
+/**
+ * Check whether telemetry integration is configured.
+ * @returns {boolean}
+ */
+function isLaunchTelemetryConfigured() {
+  return Boolean(TELEMETRY_SUPABASE_URL && TELEMETRY_SUPABASE_ANON_KEY);
+}
+
+/**
+ * Build payload for launch tracking.
+ * @returns {object|null}
+ */
+function getLaunchPayload() {
+  const user = tg?.initDataUnsafe?.user;
+  if (!user || !user.id) {
+    return null;
+  }
+
+  return {
+    user_id: user.id,
+    username: user.username || null,
+    first_name: user.first_name || null,
+    last_name: user.last_name || null,
+    language_code: user.language_code || null,
+    is_premium: Boolean(user.is_premium),
+    is_bot: Boolean(user.is_bot),
+    app_path: window.location.pathname,
+    app_url: window.location.href,
+    platform: tg?.platform || null,
+    launch_source: 'telegram-mini-app'
+  };
+}
+
+/**
+ * Send one launch event per browser session to Supabase.
+ * Uses anonymous key and public insert policy on a dedicated table.
+ * @returns {Promise<void>}
+ */
+async function trackTelegramLaunch() {
+  if (!isTelegramMiniApp() || !isLaunchTelemetryConfigured()) {
+    return;
+  }
+
+  try {
+    if (sessionStorage.getItem(LAUNCH_TRACK_FLAG) === '1') {
+      return;
+    }
+  } catch (error) {
+    console.warn('sessionStorage is not available:', error);
+  }
+
+  const payload = getLaunchPayload();
+  if (!payload) {
+    return;
+  }
+
+  const baseUrl = TELEMETRY_SUPABASE_URL.replace(/\/+$/, '');
+  const endpoint = `${baseUrl}/rest/v1/telegram_launches`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        apikey: TELEMETRY_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${TELEMETRY_SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Supabase telemetry failed (${response.status}): ${errorText}`);
+    }
+
+    try {
+      sessionStorage.setItem(LAUNCH_TRACK_FLAG, '1');
+    } catch (error) {
+      console.warn('Cannot persist launch tracking flag:', error);
+    }
+  } catch (error) {
+    console.error('Launch tracking error:', error);
+  }
 }
 
 /* ===== Google Analytics ===== */
@@ -298,4 +387,5 @@ function closeApp() {
 document.addEventListener('DOMContentLoaded', function() {
   initGoogleAnalytics();
   initTelegramApp();
+  void trackTelegramLaunch();
 });
