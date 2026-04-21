@@ -10,6 +10,7 @@ const OBSTACLE_GAP = 225;
 const OBSTACLE_SPEED = 3.3;
 const OBSTACLE_SPAWN_RATE = 105; // frames between spawns
 const SAFE_MARGIN = 95;
+const BASE_FRAME_MS = 1000 / 60;
 
 // Canvas and context
 const canvas = document.getElementById('gameCanvas');
@@ -54,6 +55,8 @@ let gameState = {
   // Pipes
   obstacles: [],
   frameCount: 0,
+  spawnTimer: 0,
+  lastTimestamp: null,
   animationFrameId: null,
 
   // Appearance
@@ -83,6 +86,8 @@ function initGame() {
   gameState.car.velocityY = 0;
   gameState.obstacles = [];
   gameState.frameCount = 0;
+  gameState.spawnTimer = 0;
+  gameState.lastTimestamp = null;
   gameState.running = true;
   gameState.paused = false;
   gameState.gameStarted = true;
@@ -205,14 +210,14 @@ function drawGameOver() {
 /**
  * Update game state
  */
-function update() {
+function update(deltaFrames) {
   if (gameState.paused || !gameState.running) return;
 
   const carHitBox = getCarHitBox(gameState.car);
 
   // Apply gravity
-  gameState.car.velocityY += GRAVITY;
-  gameState.car.y += gameState.car.velocityY;
+  gameState.car.velocityY += GRAVITY * deltaFrames;
+  gameState.car.y += gameState.car.velocityY * deltaFrames;
 
   // Check bounds (ceiling and floor)
   if (gameState.car.y < 0) {
@@ -226,15 +231,17 @@ function update() {
   }
 
   // Spawn new cone obstacles
-  gameState.frameCount++;
-  if (gameState.frameCount % OBSTACLE_SPAWN_RATE === 0) {
+  gameState.frameCount += deltaFrames;
+  gameState.spawnTimer += deltaFrames;
+  while (gameState.spawnTimer >= OBSTACLE_SPAWN_RATE) {
     spawnObstacle();
+    gameState.spawnTimer -= OBSTACLE_SPAWN_RATE;
   }
 
   // Update obstacles
   for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
     const obstacle = gameState.obstacles[i];
-    obstacle.x -= OBSTACLE_SPEED;
+    obstacle.x -= OBSTACLE_SPEED * deltaFrames;
 
     // Remove off-screen obstacles
     if (obstacle.x + OBSTACLE_WIDTH < 0) {
@@ -515,10 +522,18 @@ function draw() {
 /**
  * Game loop
  */
-function gameLoop() {
+function gameLoop(timestamp = performance.now()) {
   if (!gameState.gameStarted) return;
 
-  update();
+  if (gameState.lastTimestamp === null) {
+    gameState.lastTimestamp = timestamp;
+  }
+
+  const deltaMs = timestamp - gameState.lastTimestamp;
+  gameState.lastTimestamp = timestamp;
+  const deltaFrames = Math.min(Math.max(deltaMs / BASE_FRAME_MS, 0.5), 2.5);
+
+  update(deltaFrames);
   draw();
 
   if (gameState.running) {
