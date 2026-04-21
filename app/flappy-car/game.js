@@ -320,6 +320,31 @@ function getCarHitBox(car) {
 }
 
 /**
+ * Draw a stripe band that follows triangle cone geometry.
+ * @param {number} x - Cone left X
+ * @param {number} y1 - Stripe start Y
+ * @param {number} y2 - Stripe end Y
+ * @param {(y:number)=>number} getHalfWidthAtY - Returns half-width for a Y point
+ */
+function drawConeStripeBand(x, y1, y2, getHalfWidthAtY) {
+  const centerX = x + OBSTACLE_WIDTH / 2;
+  const hw1 = Math.max(0, getHalfWidthAtY(y1));
+  const hw2 = Math.max(0, getHalfWidthAtY(y2));
+
+  if (hw1 < 2 || hw2 < 2) {
+    return;
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(centerX - hw1, y1);
+  ctx.lineTo(centerX + hw1, y1);
+  ctx.lineTo(centerX + hw2, y2);
+  ctx.lineTo(centerX - hw2, y2);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
  * Draw a cone that points down from top.
  * @param {number} x - X position
  * @param {number} height - Cone height
@@ -336,8 +361,12 @@ function drawTopCone(x, height) {
   ctx.fill();
 
   ctx.fillStyle = gameState.colors.coneStripe;
-  ctx.fillRect(x + 12, height * 0.4, OBSTACLE_WIDTH - 24, 10);
-  ctx.fillRect(x + 16, height * 0.62, OBSTACLE_WIDTH - 32, 9);
+  const topHalfWidth = (y) => {
+    const t = Math.min(Math.max(y / height, 0), 1);
+    return (OBSTACLE_WIDTH / 2) * (1 - t);
+  };
+  drawConeStripeBand(x, height * 0.24, height * 0.32, topHalfWidth);
+  drawConeStripeBand(x, height * 0.44, height * 0.53, topHalfWidth);
 
   ctx.fillStyle = gameState.colors.coneBase;
   ctx.fillRect(x - 5, 0, OBSTACLE_WIDTH + 10, 12);
@@ -361,8 +390,12 @@ function drawBottomCone(x, y, height) {
   ctx.fill();
 
   ctx.fillStyle = gameState.colors.coneStripe;
-  ctx.fillRect(x + 12, y + height * 0.32, OBSTACLE_WIDTH - 24, 10);
-  ctx.fillRect(x + 16, y + height * 0.53, OBSTACLE_WIDTH - 32, 9);
+  const bottomHalfWidth = (yy) => {
+    const t = Math.min(Math.max((yy - y) / height, 0), 1);
+    return (OBSTACLE_WIDTH / 2) * t;
+  };
+  drawConeStripeBand(x, y + height * 0.46, y + height * 0.55, bottomHalfWidth);
+  drawConeStripeBand(x, y + height * 0.66, y + height * 0.75, bottomHalfWidth);
 
   ctx.fillStyle = gameState.colors.coneBase;
   ctx.fillRect(x - 5, canvas.height - 12, OBSTACLE_WIDTH + 10, 12);

@@ -46,16 +46,38 @@
     body.gameplay-mode .stats,
     body.gameplay-mode .instructions,
     body.gameplay-mode .brand-footer {
-      display: none;
+      display: none !important;
+      visibility: hidden;
+      height: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    body.gameplay-mode {
+      padding-top: 0;
     }
 
     body.gameplay-mode .container {
       max-width: 420px;
-      min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0.5rem;
+      padding: 0.25rem;
+    }
+
+    body.gameplay-mode .game-container {
+      max-width: 100%;
+    }
+
+    body.gameplay-mode canvas {
+      aspect-ratio: 2 / 3;
+      width: auto;
+      max-width: calc(100vw - 0.75rem);
+      height: min(88svh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 0.75rem));
+      max-height: 600px;
     }
 
     .game-container {
@@ -71,7 +93,7 @@
       width: 100%;
       max-width: 400px;
       height: auto;
-      aspect-ratio: 1 / 2;
+      aspect-ratio: 2 / 3;
       border: 3px solid var(--accent);
     }
 
