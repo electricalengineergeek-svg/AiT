@@ -1,2 +1,6 @@
 prompt.md
 README.md
+worker/.dev.vars
+worker/.env
+worker/.env.local
+worker/.wrangler/

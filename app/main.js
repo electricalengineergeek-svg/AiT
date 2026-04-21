@@ -3,8 +3,7 @@
 // Initialize Telegram Web App
 const tg = window.Telegram?.WebApp || null;
 const GOOGLE_ANALYTICS_ID = 'G-GY091TN67D';
-const TELEMETRY_SUPABASE_URL = window.AIT_SUPABASE_URL || '';
-const TELEMETRY_SUPABASE_ANON_KEY = window.AIT_SUPABASE_ANON_KEY || '';
+const TELEMETRY_ENDPOINT = window.AIT_TELEMETRY_ENDPOINT || '';
 const LAUNCH_TRACK_FLAG = 'ait_telegram_launch_tracked';
 
 /**
@@ -20,7 +19,7 @@ function isTelegramMiniApp() {
  * @returns {boolean}
  */
 function isLaunchTelemetryConfigured() {
-  return Boolean(TELEMETRY_SUPABASE_URL && TELEMETRY_SUPABASE_ANON_KEY);
+  return Boolean(TELEMETRY_ENDPOINT);
 }
 
 /**
@@ -28,29 +27,22 @@ function isLaunchTelemetryConfigured() {
  * @returns {object|null}
  */
 function getLaunchPayload() {
-  const user = tg?.initDataUnsafe?.user;
-  if (!user || !user.id) {
+  if (!tg?.initData) {
     return null;
   }
 
   return {
-    user_id: user.id,
-    username: user.username || null,
-    first_name: user.first_name || null,
-    last_name: user.last_name || null,
-    language_code: user.language_code || null,
-    is_premium: Boolean(user.is_premium),
-    is_bot: Boolean(user.is_bot),
+    init_data: tg.initData,
     app_path: window.location.pathname,
     app_url: window.location.href,
     platform: tg?.platform || null,
-    launch_source: 'telegram-mini-app'
+    launch_source: 'telegram-mini-app-secure'
   };
 }
 
 /**
- * Send one launch event per browser session to Supabase.
- * Uses anonymous key and public insert policy on a dedicated table.
+ * Send one launch event per browser session to secure backend.
+ * Backend validates Telegram initData and writes to database.
  * @returns {Promise<void>}
  */
 async function trackTelegramLaunch() {
@@ -71,24 +63,20 @@ async function trackTelegramLaunch() {
     return;
   }
 
-  const baseUrl = TELEMETRY_SUPABASE_URL.replace(/\/+$/, '');
-  const endpoint = `${baseUrl}/rest/v1/telegram_launches`;
+  const endpoint = TELEMETRY_ENDPOINT;
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        apikey: TELEMETRY_SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${TELEMETRY_SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Supabase telemetry failed (${response.status}): ${errorText}`);
+      throw new Error(`Telemetry backend failed (${response.status}): ${errorText}`);
     }
 
     try {
