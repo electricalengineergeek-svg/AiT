@@ -1,4 +1,5 @@
 const encoder = new TextEncoder();
+const FLAPPY_CAR_GAME_KEY = 'flappy_car';
 
 function jsonResponse(body, status = 200, origin = '*') {
   return new Response(JSON.stringify(body), {
@@ -110,6 +111,29 @@ function supabaseHeaders(env, prefer = null) {
   return headers;
 }
 
+function parseGameKey(rawValue) {
+  if (typeof rawValue !== 'string') {
+    return FLAPPY_CAR_GAME_KEY;
+  }
+
+  const trimmed = rawValue.trim().toLowerCase();
+  return trimmed || FLAPPY_CAR_GAME_KEY;
+}
+
+function parseScore(rawValue) {
+  const numeric = Number(rawValue);
+  if (!Number.isFinite(numeric)) {
+    throw new Error('score must be a finite number');
+  }
+
+  const score = Math.floor(numeric);
+  if (score < 0 || score > 1000000) {
+    throw new Error('score must be between 0 and 1000000');
+  }
+
+  return score;
+}
+
 async function upsertLaunchByUserId(env, row) {
   const endpoint = `${env.SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/telegram_launches?on_conflict=user_id`;
 
@@ -128,8 +152,175 @@ async function upsertLaunchByUserId(env, row) {
   }
 }
 
+async function insertGameScore(env, row) {
+  const endpoint = `${env.SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/telegram_game_scores`;
+
+  const insertResponse = await fetch(endpoint, {
+    method: 'POST',
+    headers: supabaseHeaders(env, 'return=minimal'),
+    body: JSON.stringify({
+      ...row,
+      created_at: new Date().toISOString()
+    })
+  });
+
+  if (!insertResponse.ok) {
+    const text = await insertResponse.text();
+    throw new Error(`Supabase score insert failed (${insertResponse.status}): ${text}`);
+  }
+}
+
+async function getTopGameScores(env, gameKey, limit) {
+  const sanitizedLimit = Math.min(Math.max(Number(limit) || 5, 1), 20);
+  const endpointBase = env.SUPABASE_URL.replace(/\/+$/, '');
+  const endpoint = `${endpointBase}/rest/v1/telegram_game_scores` +
+    `?select=user_id,username,first_name,score,created_at` +
+    `&game_key=eq.${encodeURIComponent(gameKey)}` +
+    `&order=score.desc,created_at.asc` +
+    `&limit=${sanitizedLimit}`;
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: supabaseHeaders(env)
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Supabase top scores fetch failed (${response.status}): ${text}`);
+  }
+
+  return response.json();
+}
+
+async function getUserBestGameScore(env, gameKey, userId) {
+  const endpointBase = env.SUPABASE_URL.replace(/\/+$/, '');
+  const endpoint = `${endpointBase}/rest/v1/telegram_game_scores` +
+    `?select=score,created_at` +
+    `&game_key=eq.${encodeURIComponent(gameKey)}` +
+    `&user_id=eq.${encodeURIComponent(String(userId))}` +
+    `&order=score.desc,created_at.asc` +
+    `&limit=1`;
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: supabaseHeaders(env)
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Supabase user best fetch failed (${response.status}): ${text}`);
+  }
+
+  const rows = await response.json();
+  return rows[0] || null;
+}
+
+async function parseAndVerifyTelegramUser(body, env) {
+  const initData = body?.init_data;
+  if (!initData || typeof initData !== 'string') {
+    throw new Error('init_data is required');
+  }
+
+  const maxAuthAgeSec = Number(env.MAX_AUTH_AGE_SEC || '86400');
+  return verifyTelegramInitData(initData, env.TELEGRAM_BOT_TOKEN, maxAuthAgeSec);
+}
+
+async function handleLaunch(body, env, allowedOrigin) {
+  let user;
+  try {
+    user = await parseAndVerifyTelegramUser(body, env);
+  } catch (error) {
+    return jsonResponse({ ok: false, error: error.message }, 401, allowedOrigin);
+  }
+
+  const row = {
+    user_id: user.id,
+    username: user.username || null,
+    first_name: user.first_name || null,
+    last_name: user.last_name || null,
+    language_code: user.language_code || null,
+    is_premium: Boolean(user.is_premium),
+    is_bot: Boolean(user.is_bot),
+    app_path: typeof body.app_path === 'string' ? body.app_path : null,
+    app_url: typeof body.app_url === 'string' ? body.app_url : null,
+    platform: typeof body.platform === 'string' ? body.platform : null,
+    launch_source: typeof body.launch_source === 'string' ? body.launch_source : 'telegram-mini-app-secure'
+  };
+
+  try {
+    await upsertLaunchByUserId(env, row);
+    return jsonResponse({ ok: true }, 201, allowedOrigin);
+  } catch (error) {
+    return jsonResponse({ ok: false, error: error.message }, 502, allowedOrigin);
+  }
+}
+
+async function handleSubmitGameScore(body, env, allowedOrigin) {
+  let user;
+  try {
+    user = await parseAndVerifyTelegramUser(body, env);
+  } catch (error) {
+    return jsonResponse({ ok: false, error: error.message }, 401, allowedOrigin);
+  }
+
+  let score;
+  try {
+    score = parseScore(body?.score);
+  } catch (error) {
+    return jsonResponse({ ok: false, error: error.message }, 400, allowedOrigin);
+  }
+
+  const row = {
+    user_id: user.id,
+    username: user.username || null,
+    first_name: user.first_name || null,
+    game_key: parseGameKey(body?.game_key),
+    score
+  };
+
+  try {
+    await insertGameScore(env, row);
+    return jsonResponse({ ok: true }, 201, allowedOrigin);
+  } catch (error) {
+    return jsonResponse({ ok: false, error: error.message }, 502, allowedOrigin);
+  }
+}
+
+async function handleGameScoreSummary(body, env, allowedOrigin) {
+  let user;
+  try {
+    user = await parseAndVerifyTelegramUser(body, env);
+  } catch (error) {
+    return jsonResponse({ ok: false, error: error.message }, 401, allowedOrigin);
+  }
+
+  const gameKey = parseGameKey(body?.game_key);
+  const limit = Number(body?.limit || 5);
+
+  try {
+    const [topScores, userBest] = await Promise.all([
+      getTopGameScores(env, gameKey, limit),
+      getUserBestGameScore(env, gameKey, user.id)
+    ]);
+
+    const globalBest = topScores.length > 0 ? topScores[0].score : null;
+
+    return jsonResponse({
+      ok: true,
+      game_key: gameKey,
+      top_scores: topScores,
+      user_best: userBest ? userBest.score : null,
+      global_best: globalBest
+    }, 200, allowedOrigin);
+  } catch (error) {
+    return jsonResponse({ ok: false, error: error.message }, 502, allowedOrigin);
+  }
+}
+
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    const pathname = url.pathname;
     const origin = readOrigin(request);
     const allowedOrigin = env.ALLOWED_ORIGIN || '*';
 
@@ -163,39 +354,18 @@ export default {
       return jsonResponse({ ok: false, error: 'Invalid JSON body' }, 400, allowedOrigin);
     }
 
-    const initData = body?.init_data;
-    if (!initData || typeof initData !== 'string') {
-      return jsonResponse({ ok: false, error: 'init_data is required' }, 400, allowedOrigin);
+    if (pathname === '/game-scores/submit') {
+      return handleSubmitGameScore(body, env, allowedOrigin);
     }
 
-    const maxAuthAgeSec = Number(env.MAX_AUTH_AGE_SEC || '86400');
-
-    let user;
-    try {
-      user = await verifyTelegramInitData(initData, env.TELEGRAM_BOT_TOKEN, maxAuthAgeSec);
-    } catch (error) {
-      return jsonResponse({ ok: false, error: error.message }, 401, allowedOrigin);
+    if (pathname === '/game-scores/summary') {
+      return handleGameScoreSummary(body, env, allowedOrigin);
     }
 
-    const row = {
-      user_id: user.id,
-      username: user.username || null,
-      first_name: user.first_name || null,
-      last_name: user.last_name || null,
-      language_code: user.language_code || null,
-      is_premium: Boolean(user.is_premium),
-      is_bot: Boolean(user.is_bot),
-      app_path: typeof body.app_path === 'string' ? body.app_path : null,
-      app_url: typeof body.app_url === 'string' ? body.app_url : null,
-      platform: typeof body.platform === 'string' ? body.platform : null,
-      launch_source: typeof body.launch_source === 'string' ? body.launch_source : 'telegram-mini-app-secure'
-    };
-
-    try {
-      await upsertLaunchByUserId(env, row);
-      return jsonResponse({ ok: true }, 201, allowedOrigin);
-    } catch (error) {
-      return jsonResponse({ ok: false, error: error.message }, 502, allowedOrigin);
+    if (pathname === '/' || pathname === '/launch') {
+      return handleLaunch(body, env, allowedOrigin);
     }
+
+    return jsonResponse({ ok: false, error: 'Route not found' }, 404, allowedOrigin);
   }
 };

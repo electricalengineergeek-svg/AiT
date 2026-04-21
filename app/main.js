@@ -23,6 +23,23 @@ function isLaunchTelemetryConfigured() {
 }
 
 /**
+ * Get Telegram init_data string for secure backend calls.
+ * @returns {string|null}
+ */
+function getTelegramInitData() {
+  return tg?.initData || null;
+}
+
+/**
+ * Build absolute URL for telemetry worker route.
+ * @param {string} path - Route path that starts with /
+ * @returns {string}
+ */
+function buildTelemetryUrl(path = '') {
+  return `${TELEMETRY_ENDPOINT.replace(/\/+$/, '')}${path}`;
+}
+
+/**
  * Build payload for launch tracking.
  * @returns {object|null}
  */
@@ -63,7 +80,7 @@ async function trackTelegramLaunch() {
     return;
   }
 
-  const endpoint = TELEMETRY_ENDPOINT;
+  const endpoint = buildTelemetryUrl('');
 
   try {
     const response = await fetch(endpoint, {
@@ -87,6 +104,78 @@ async function trackTelegramLaunch() {
   } catch (error) {
     console.error('Launch tracking error:', error);
   }
+}
+
+/**
+ * Submit one game result for current Telegram user.
+ * @param {string} gameKey - Game identifier
+ * @param {number} score - Numeric score
+ * @returns {Promise<object|null>} Response JSON or null if unavailable
+ */
+async function submitGameScore(gameKey, score) {
+  if (!isLaunchTelemetryConfigured()) {
+    return null;
+  }
+
+  const initData = getTelegramInitData();
+  if (!initData) {
+    return null;
+  }
+
+  const response = await fetch(buildTelemetryUrl('/game-scores/submit'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      init_data: initData,
+      game_key: gameKey,
+      score
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Score submit failed (${response.status}): ${errorText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch top scores and current user best score.
+ * @param {string} gameKey - Game identifier
+ * @param {number} limit - Max leaderboard rows
+ * @returns {Promise<object|null>} Summary payload or null if unavailable
+ */
+async function fetchGameScoreSummary(gameKey, limit = 5) {
+  if (!isLaunchTelemetryConfigured()) {
+    return null;
+  }
+
+  const initData = getTelegramInitData();
+  if (!initData) {
+    return null;
+  }
+
+  const response = await fetch(buildTelemetryUrl('/game-scores/summary'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      init_data: initData,
+      game_key: gameKey,
+      limit
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Score summary failed (${response.status}): ${errorText}`);
+  }
+
+  return response.json();
 }
 
 /* ===== Google Analytics ===== */

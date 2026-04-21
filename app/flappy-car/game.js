@@ -11,6 +11,8 @@ const OBSTACLE_SPEED = 3.3;
 const OBSTACLE_SPAWN_RATE = 105; // frames between spawns
 const SAFE_MARGIN = 95;
 const BASE_FRAME_MS = 1000 / 60;
+const GAME_KEY = 'flappy_car';
+const LEADERBOARD_LIMIT = 5;
 
 // Canvas and context
 const canvas = document.getElementById('gameCanvas');
@@ -33,6 +35,76 @@ function setOverlayVisibility(id, visible) {
   const element = document.getElementById(id);
   if (!element) return;
   element.classList.toggle('show', visible);
+}
+
+/**
+ * Render leaderboard rows into result screen.
+ * @param {Array<{username?:string,first_name?:string,score:number}>} scores - Top score rows
+ */
+function renderLeaderboard(scores) {
+  const leaderboardList = document.getElementById('leaderboardList');
+  if (!leaderboardList) {
+    return;
+  }
+
+  leaderboardList.innerHTML = '';
+
+  if (!scores || scores.length === 0) {
+    const emptyRow = document.createElement('li');
+    emptyRow.className = 'leaderboard-empty';
+    emptyRow.textContent = 'Ще немає результатів';
+    leaderboardList.appendChild(emptyRow);
+    return;
+  }
+
+  scores.forEach((entry) => {
+    const item = document.createElement('li');
+    const name = entry.first_name || entry.username || 'Гравець';
+    item.textContent = `${name} - ${entry.score}`;
+    leaderboardList.appendChild(item);
+  });
+}
+
+/**
+ * Load score summary from backend and update result screen.
+ * Falls back to local best score if backend is unavailable.
+ */
+async function syncScoreSummary() {
+  const resultBest = document.getElementById('resultBest');
+  const resultGlobalBest = document.getElementById('resultGlobalBest');
+
+  if (resultBest) {
+    resultBest.textContent = String(gameState.bestScore);
+  }
+  if (resultGlobalBest) {
+    resultGlobalBest.textContent = String(gameState.bestScore);
+  }
+
+  try {
+    if (typeof submitGameScore !== 'function' || typeof fetchGameScoreSummary !== 'function') {
+      renderLeaderboard([]);
+      return;
+    }
+
+    await submitGameScore(GAME_KEY, gameState.score);
+    const summary = await fetchGameScoreSummary(GAME_KEY, LEADERBOARD_LIMIT);
+
+    if (!summary || !summary.ok) {
+      return;
+    }
+
+    if (resultBest && Number.isFinite(summary.user_best)) {
+      resultBest.textContent = String(summary.user_best);
+    }
+
+    if (resultGlobalBest && Number.isFinite(summary.global_best)) {
+      resultGlobalBest.textContent = String(summary.global_best);
+    }
+
+    renderLeaderboard(Array.isArray(summary.top_scores) ? summary.top_scores : []);
+  } catch (error) {
+    console.warn('Score sync failed:', error);
+  }
 }
 
 // Game state
@@ -165,13 +237,11 @@ function endGame() {
   document.getElementById('gameStat').textContent = gameState.score;
 
   const resultScore = document.getElementById('resultScore');
-  const resultBest = document.getElementById('resultBest');
   if (resultScore) {
     resultScore.textContent = String(gameState.score);
   }
-  if (resultBest) {
-    resultBest.textContent = String(gameState.bestScore);
-  }
+
+  void syncScoreSummary();
 
   setGameplayMode(false);
   setOverlayVisibility('resultScreen', true);

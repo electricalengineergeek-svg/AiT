@@ -216,6 +216,38 @@
       color: var(--accent);
       font-weight: 700;
     }
+
+    .leaderboard {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    .leaderboard-title {
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    .leaderboard-list {
+      margin: 0;
+      padding-left: 1.25rem;
+      color: var(--text-light);
+      font-size: 0.92rem;
+      min-height: 4.8rem;
+    }
+
+    .leaderboard-list li {
+      margin-bottom: 0.25rem;
+    }
+
+    .leaderboard-empty {
+      color: var(--text-muted);
+      list-style: none;
+      margin-left: -1.25rem;
+    }
   </style>
 </head>
 <body>
@@ -247,7 +279,16 @@
         <div class="overlay-card">
           <div class="overlay-title">Результат</div>
           <div class="result-row"><span>Очки:</span><span class="result-value" id="resultScore">0</span></div>
-          <div class="result-row"><span>Рекорд:</span><span class="result-value" id="resultBest">0</span></div>
+          <div class="result-row"><span>Ваш кращий:</span><span class="result-value" id="resultBest">0</span></div>
+          <div class="result-row"><span>Глобальний кращий:</span><span class="result-value" id="resultGlobalBest">-</span></div>
+
+          <div class="leaderboard">
+            <div class="leaderboard-title">Топ гравців</div>
+            <ol class="leaderboard-list" id="leaderboardList">
+              <li class="leaderboard-empty">Ще немає результатів</li>
+            </ol>
+          </div>
+
           <button class="btn" onclick="beginGameFlow()">Спробувати ще</button>
         </div>
       </div>
