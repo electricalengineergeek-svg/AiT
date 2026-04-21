@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a1a1a">
+  <title>AiT - Кафедра "Автомобіле- і тракторобудування"</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <!-- Department Brand Header -->
+  <div class="brand-header">
+    <div class="brand-logo">
+      <img src="./img/cropped-Logo_AT_150x150.png" alt="Логотип кафедри АіТ">
+    </div>
+    <div class="brand-title">Кафедра "Автомобіле- і тракторобудування"</div>
+    <div class="brand-subtitle">Національний технічний університет "Харківський політехнічний інститут"</div>
+    <div class="brand-tagline">Сучасна освіта у сфері транспорту</div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container main-content">
+    <!-- Greeting -->
+    <div id="greeting" class="mb-4"></div>
+
+    <!-- Main Menu -->
+    <h2 class="mb-4 text-center">Виберіть інструмент</h2>
+
+    <div class="grid">
+      <!-- ГБО Card -->
+      <a href="./gbo/index.html" class="card nav-card">
+        <div class="icon">⛽</div>
+        <div class="card-title">ГБО: Реальна Окупність</div>
+        <div class="card-description">Розрахунок окупності установки газобалонного обладнання</div>
+      </a>
+
+      <!-- EV vs ICE Card -->
+      <a href="./ev-vs-ice/index.html" class="card nav-card">
+        <div class="icon">⚡</div>
+        <div class="card-title">ДВЗ vs Електро</div>
+        <div class="card-description">Порівняння вартості володіння електромобілем та ДВЗ</div>
+      </a>
+
+      <!-- Flappy Car Card -->
+      <a href="./flappy-car/index.html" class="card nav-card">
+        <div class="icon">🎮</div>
+        <div class="card-title">Flappy Car (Гра)</div>
+        <div class="card-description">Проведи машину крізь перешкоди</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Department Brand Footer -->
+  <div class="brand-footer">
+    <div class="footer-section">
+      <div class="footer-department-name">Кафедра "Автомобіле- і тракторобудування"</div>
+      <div class="footer-tagline">KEEP CALM AND GO KhPI!</div>
+    </div>
+    <div class="footer-section">
+      <div class="footer-university-name">Національний технічний університет "Харківський політехнічний інститут"</div>
+      <a href="https://web.kpi.kharkov.ua/ait/abituriyentu/suchasna-osvita/" class="footer-link" target="_blank">
+        Відвідати сайт кафедри →
+      </a>
+    </div>
+  </div>
+
+  <script src="./main.js"></script>
+  <script>
+    // Set greeting on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const userName = getUserName();
+      document.getElementById('greeting').textContent = `Привіт, ${userName}!`;
+    });
+  </script>
+</body>
+</html>

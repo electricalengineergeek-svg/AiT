@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a1a1a">
+  <title>ГБО: Реальна Окупність</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <!-- Header with Back Button -->
+  <div class="header">
+    <h1 class="header-title">⛽ ГБО Калькулятор</h1>
+    <button class="btn btn-secondary back-btn" onclick="goBack()">← Назад</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="card" style="max-width: 600px; margin: 2rem auto;">
+      <h2 class="mb-3">Розрахунок Окупності ГБО</h2>
+      
+      <form id="gboForm">
+        <!-- Вартість ГБО -->
+        <div class="form-group">
+          <label for="gboCost">Вартість установки ГБО (грн)</label>
+          <input 
+            type="number" 
+            id="gboCost" 
+            placeholder="Наприклад: 15000" 
+            min="0" 
+            step="100"
+            required
+          >
+        </div>
+
+        <!-- Ціна бензину -->
+        <div class="form-group">
+          <label for="gasolinePrice">Ціна бензину (грн/л)</label>
+          <input 
+            type="number" 
+            id="gasolinePrice" 
+            placeholder="Наприклад: 50" 
+            min="0" 
+            step="0.1"
+            required
+          >
+        </div>
+
+        <!-- Ціна газу -->
+        <div class="form-group">
+          <label for="gasPrice">Ціна газу (грн/л)</label>
+          <input 
+            type="number" 
+            id="gasPrice" 
+            placeholder="Наприклад: 25" 
+            min="0" 
+            step="0.1"
+            required
+          >
+        </div>
+
+        <!-- Середні витрати пального -->
+        <div class="form-group">
+          <label for="fuelConsumption">Середні витрати пального (л/100км)</label>
+          <input 
+            type="number" 
+            id="fuelConsumption" 
+            placeholder="Наприклад: 8" 
+            min="0" 
+            step="0.1"
+            required
+          >
+        </div>
+
+        <!-- Витрати на прогрів -->
+        <div class="form-group">
+          <label for="heatingCost">Витрати на прогрів (грн/км)</label>
+          <input 
+            type="number" 
+            id="heatingCost" 
+            placeholder="Наприклад: 0.5" 
+            min="0" 
+            step="0.01"
+            required
+          >
+          <small class="text-muted mt-1">Додаткові витрати на прогрів газу</small>
+        </div>
+
+        <!-- Calculate Button -->
+        <button type="submit" class="btn btn-block mb-2">Розрахувати</button>
+        <button type="button" class="btn btn-secondary btn-block" onclick="clearForm()">Очистити</button>
+      </form>
+
+      <!-- Result Box -->
+      <div id="resultBox" class="result-box">
+        <div class="result-label">Окупиться через</div>
+        <div id="resultValue" class="result-value">-</div>
+        <div class="result-label mt-2">
+          <div>Економія на 1км: <span id="savingsPerKm" class="text-accent">-</span> грн</div>
+          <div class="mt-1">Річна економія (15000км): <span id="annualSavings" class="text-accent">-</span> грн</div>
+        </div>
+      </div>
+
+      <!-- Info Box -->
+      <div class="card mt-3" style="background-color: var(--bg-dark); border-color: var(--border-color);">
+        <h3 class="mb-2 text-accent">ℹ️ Як це працює?</h3>
+        <p class="text-muted mb-1"><strong>Формула розрахунку:</strong></p>
+        <p class="text-muted" style="font-family: monospace; font-size: 0.9rem;">
+          Економія = (ЦінаБензину × В/100) - ((ЦінаГазу × В/100 × 1.2) + ВитратиПрогріву)
+        </p>
+        <p class="text-muted mb-1 mt-2">Де В — витрати пального (л/100км)</p>
+        <p class="text-muted">Коефіцієнт 1.2 — газ споживається на 20% більше за об'ємом</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Department Brand Footer -->
+  <div class="brand-footer">
+    <div class="footer-section">
+      <div class="footer-department-name">Кафедра "Автомобіле- і тракторобудування"</div>
+      <div class="footer-tagline">KEEP CALM AND GO KhPI!</div>
+    </div>
+    <div class="footer-section">
+      <div class="footer-university-name">Національний технічний університет "Харківський політехнічний інститут"</div>
+      <a href="https://web.kpi.kharkov.ua/ait/abituriyentu/suchasna-osvita/" class="footer-link" target="_blank">
+        Відвідати сайт кафедри →
+      </a>
+    </div>
+  </div>
+
+  <script src="../main.js"></script>
+  <script src="./calculator.js"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+/* ===== Telegram Web App Initialization ===== */
+
+// Initialize Telegram Web App
+const tg = window.Telegram.WebApp;
+
+/**
+ * Initialize Telegram Mini App
+ */
+function initTelegramApp() {
+  tg.ready();
+  tg.expand();
+
+  // Set theme to dark
+  tg.setHeaderColor('#1a1a1a');
+  tg.setBackgroundColor('#1a1a1a');
+
+  // Disable vertical swipe (iOS)
+  tg.disableVerticalSwipes();
+
+  // Log user data (for debugging)
+  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    console.log('User:', tg.initDataUnsafe.user);
+  }
+}
+
+/**
+ * Get user display name
+ * @returns {string} First name or "Користувач" if not available
+ */
+function getUserName() {
+  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    return tg.initDataUnsafe.user.first_name || 'Користувач';
+  }
+  return 'Користувач';
+}
+
+/**
+ * Get user ID
+ * @returns {number|null} User ID or null
+ */
+function getUserId() {
+  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    return tg.initDataUnsafe.user.id;
+  }
+  return null;
+}
+
+/* ===== localStorage Utilities ===== */
+
+/**
+ * Save data to localStorage
+ * @param {string} key - Storage key
+ * @param {*} value - Value to save (will be JSON stringified)
+ */
+function saveData(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error saving data for key "${key}":`, error);
+  }
+}
+
+/**
+ * Load data from localStorage
+ * @param {string} key - Storage key
+ * @param {*} defaultValue - Default value if key doesn't exist
+ * @returns {*} Parsed value or defaultValue
+ */
+function loadData(key, defaultValue = null) {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : defaultValue;
+  } catch (error) {
+    console.error(`Error loading data for key "${key}":`, error);
+    return defaultValue;
+  }
+}
+
+/**
+ * Clear data from localStorage
+ * @param {string} key - Storage key
+ */
+function clearData(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error(`Error clearing data for key "${key}":`, error);
+  }
+}
+
+/**
+ * Clear all localStorage data
+ */
+function clearAllData() {
+  try {
+    localStorage.clear();
+  } catch (error) {
+    console.error('Error clearing all data:', error);
+  }
+}
+
+/* ===== Navigation & Back Button ===== */
+
+/**
+ * Setup back button for sub-pages
+ * @param {Function} onBack - Callback when back button is pressed
+ */
+function setupBackButton(onBack) {
+  tg.BackButton.onClick(onBack);
+  tg.BackButton.show();
+}
+
+/**
+ * Hide back button
+ */
+function hideBackButton() {
+  tg.BackButton.hide();
+}
+
+/**
+ * Show back button
+ */
+function showBackButton() {
+  tg.BackButton.show();
+}
+
+/**
+ * Navigate back
+ */
+function goBack() {
+  window.history.back();
+}
+
+/* ===== Main Menu Navigation ===== */
+
+/**
+ * Navigate to a page
+ * @param {string} path - Relative path to navigate to
+ */
+function navigateTo(path) {
+  window.location.href = path;
+}
+
+/* ===== Utility Functions ===== */
+
+/**
+ * Format number as currency (UAH)
+ * @param {number} value - Number to format
+ * @returns {string} Formatted currency string
+ */
+function formatCurrency(value) {
+  return new Intl.NumberFormat('uk-UA', {
+    style: 'currency',
+    currency: 'UAH',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+/**
+ * Format number with thousands separator
+ * @param {number} value - Number to format
+ * @param {number} decimals - Decimal places
+ * @returns {string} Formatted number
+ */
+function formatNumber(value, decimals = 0) {
+  return new Intl.NumberFormat('uk-UA', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(value);
+}
+
+/**
+ * Show notification (using Telegram or alert fallback)
+ * @param {string} message - Message to display
+ * @param {string} type - Type: 'success', 'error', 'info'
+ */
+function showNotification(message, type = 'info') {
+  if (tg.showAlert) {
+    tg.showAlert(message);
+  } else {
+    alert(message);
+  }
+}
+
+/**
+ * Show confirm dialog
+ * @param {string} message - Message to display
+ * @param {Function} onConfirm - Callback if confirmed
+ * @param {Function} onCancel - Callback if cancelled
+ */
+function showConfirm(message, onConfirm, onCancel = null) {
+  if (tg.showConfirm) {
+    tg.showConfirm(message, (result) => {
+      if (result) {
+        onConfirm();
+      } else if (onCancel) {
+        onCancel();
+      }
+    });
+  } else {
+    if (confirm(message)) {
+      onConfirm();
+    } else if (onCancel) {
+      onCancel();
+    }
+  }
+}
+
+/**
+ * Request phone number from user
+ * @param {Function} onSuccess - Callback with phone number
+ * @param {Function} onError - Callback on error
+ */
+function requestPhoneNumber(onSuccess, onError = null) {
+  if (tg.requestContact) {
+    tg.requestContact((contact) => {
+      if (contact) {
+        onSuccess(contact.phone_number);
+      } else if (onError) {
+        onError();
+      }
+    });
+  } else if (onError) {
+    onError();
+  }
+}
+
+/* ===== Close App ===== */
+
+/**
+ * Close the Mini App
+ */
+function closeApp() {
+  tg.close();
+}
+
+/* ===== Init on page load ===== */
+document.addEventListener('DOMContentLoaded', function() {
+  initTelegramApp();
+});
