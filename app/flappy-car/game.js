@@ -294,7 +294,7 @@ function jump() {
 
 document.addEventListener('DOMContentLoaded', function() {
   // Setup back button
-  setupBackButton(goBack);
+  setupBackButton(goToHome);
 
   // Load best score on page load
   const best = loadData(FLAPPY_CAR_STORAGE_KEY, 0);

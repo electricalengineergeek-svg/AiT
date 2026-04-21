@@ -2,6 +2,32 @@
 
 // Initialize Telegram Web App
 const tg = window.Telegram.WebApp;
+const GOOGLE_ANALYTICS_ID = 'G-GY091TN67D';
+
+/* ===== Google Analytics ===== */
+
+/**
+ * Initialize Google Analytics 4.
+ * Loads the gtag script once and sends the default page view.
+ */
+function initGoogleAnalytics() {
+  if (!GOOGLE_ANALYTICS_ID || window.gtag) {
+    return;
+  }
+
+  const analyticsScript = document.createElement('script');
+  analyticsScript.async = true;
+  analyticsScript.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`;
+  document.head.appendChild(analyticsScript);
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() {
+    window.dataLayer.push(arguments);
+  };
+
+  window.gtag('js', new Date());
+  window.gtag('config', GOOGLE_ANALYTICS_ID);
+}
 
 /**
  * Initialize Telegram Mini App
@@ -131,6 +157,17 @@ function goBack() {
   window.history.back();
 }
 
+/**
+ * Navigate to the main app screen
+ */
+function goToHome() {
+  if (window.location.pathname.endsWith('/app/index.html') || window.location.pathname.endsWith('\\app\\index.html')) {
+    return;
+  }
+
+  window.location.href = '../index.html';
+}
+
 /* ===== Main Menu Navigation ===== */
 
 /**
@@ -237,5 +274,6 @@ function closeApp() {
 
 /* ===== Init on page load ===== */
 document.addEventListener('DOMContentLoaded', function() {
+  initGoogleAnalytics();
   initTelegramApp();
 });

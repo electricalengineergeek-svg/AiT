@@ -297,7 +297,7 @@ function performComparison() {
 
 document.addEventListener('DOMContentLoaded', function() {
   // Setup back button
-  setupBackButton(goBack);
+  setupBackButton(goToHome);
 
   // Load saved values
   loadFormValues();
