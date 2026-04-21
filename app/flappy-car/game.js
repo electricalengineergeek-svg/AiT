@@ -69,7 +69,7 @@ function renderLeaderboard(scores) {
  * Load score summary from backend and update result screen.
  * Falls back to local best score if backend is unavailable.
  */
-async function syncScoreSummary() {
+async function syncScoreSummary(shouldSubmitScore = false) {
   const resultBest = document.getElementById('resultBest');
   const resultGlobalBest = document.getElementById('resultGlobalBest');
 
@@ -86,7 +86,9 @@ async function syncScoreSummary() {
       return;
     }
 
-    await submitGameScore(GAME_KEY, gameState.score);
+    if (shouldSubmitScore) {
+      await submitGameScore(GAME_KEY, gameState.score);
+    }
     const summary = await fetchGameScoreSummary(GAME_KEY, LEADERBOARD_LIMIT);
 
     if (!summary || !summary.ok) {
@@ -224,8 +226,10 @@ function endGame() {
     gameState.animationFrameId = null;
   }
 
+  const shouldSubmitScore = gameState.score > gameState.bestScore;
+
   // Update best score
-  if (gameState.score > gameState.bestScore) {
+  if (shouldSubmitScore) {
     gameState.bestScore = gameState.score;
     saveData(FLAPPY_CAR_STORAGE_KEY, gameState.bestScore);
     document.getElementById('bestStat').textContent = gameState.bestScore;
@@ -241,7 +245,7 @@ function endGame() {
     resultScore.textContent = String(gameState.score);
   }
 
-  void syncScoreSummary();
+  void syncScoreSummary(shouldSubmitScore);
 
   setGameplayMode(false);
   setOverlayVisibility('resultScreen', true);

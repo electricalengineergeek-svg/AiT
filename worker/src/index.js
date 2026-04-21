@@ -152,21 +152,26 @@ async function upsertLaunchByUserId(env, row) {
   }
 }
 
-async function insertGameScore(env, row) {
-  const endpoint = `${env.SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/telegram_game_scores`;
+async function upsertGameScoreIfBetter(env, row) {
+  // Upsert on (user_id, game_key): only update when new score is strictly higher.
+  const endpoint = `${env.SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/rpc/upsert_game_score_if_better`;
 
-  const insertResponse = await fetch(endpoint, {
+  const rpcResponse = await fetch(endpoint, {
     method: 'POST',
     headers: supabaseHeaders(env, 'return=minimal'),
     body: JSON.stringify({
-      ...row,
-      created_at: new Date().toISOString()
+      p_user_id: row.user_id,
+      p_username: row.username,
+      p_first_name: row.first_name,
+      p_game_key: row.game_key,
+      p_score: row.score,
+      p_created_at: new Date().toISOString()
     })
   });
 
-  if (!insertResponse.ok) {
-    const text = await insertResponse.text();
-    throw new Error(`Supabase score insert failed (${insertResponse.status}): ${text}`);
+  if (!rpcResponse.ok) {
+    const text = await rpcResponse.text();
+    throw new Error(`Supabase score upsert failed (${rpcResponse.status}): ${text}`);
   }
 }
 
@@ -279,7 +284,7 @@ async function handleSubmitGameScore(body, env, allowedOrigin) {
   };
 
   try {
-    await insertGameScore(env, row);
+    await upsertGameScoreIfBetter(env, row);
     return jsonResponse({ ok: true }, 201, allowedOrigin);
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message }, 502, allowedOrigin);
