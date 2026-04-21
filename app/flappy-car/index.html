@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1a1a1a">
-  <meta name="description" content="Flappy Car - мінігра кафедри АіТ: керуйте авто, уникайте перешкод і ставте нові рекорди.">
+  <meta name="description" content="Flappy Car - мінігра кафедри АіТ: керуйте крилатим автомобільчиком, оминайте дорожні конуси та ставте нові рекорди.">
   <link rel="canonical" href="https://electricalengineergeek-svg.github.io/AiT/app/flappy-car/">
   <meta property="og:site_name" content="AiT">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="uk_UA">
   <meta property="og:title" content="Flappy Car - Гра">
-  <meta property="og:description" content="Мінігра кафедри АіТ: пройдіть якомога далі та встановіть рекорд.">
+  <meta property="og:description" content="Мінігра кафедри АіТ: летіть крилатим авто, оминайте конуси та встановлюйте рекорди.">
   <meta property="og:url" content="https://electricalengineergeek-svg.github.io/AiT/app/flappy-car/">
   <meta property="og:image" content="https://electricalengineergeek-svg.github.io/AiT/app/img/og-flappy-car.png">
   <meta property="og:image:width" content="1200">
@@ -18,14 +18,44 @@
   <meta property="og:image:alt" content="Flappy Car - мінігра кафедри АіТ">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Flappy Car - Гра">
-  <meta name="twitter:description" content="Мінігра кафедри АіТ: пройдіть якомога далі та встановіть рекорд.">
+  <meta name="twitter:description" content="Мінігра кафедри АіТ: летіть крилатим авто, оминайте конуси та встановлюйте рекорди.">
   <meta name="twitter:image" content="https://electricalengineergeek-svg.github.io/AiT/app/img/og-flappy-car.png">
   <title>Flappy Car - Гра</title>
   <link rel="stylesheet" href="../styles.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
+      justify-content: flex-start;
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+    }
+
+    .container {
+      padding-top: 0.5rem;
+    }
+
+    .game-info,
+    .game-controls,
+    .stats,
+    .instructions {
+      display: none;
+    }
+
+    body.gameplay-mode .header,
+    body.gameplay-mode .game-info,
+    body.gameplay-mode .game-controls,
+    body.gameplay-mode .stats,
+    body.gameplay-mode .instructions,
+    body.gameplay-mode .brand-footer {
+      display: none;
+    }
+
+    body.gameplay-mode .container {
+      max-width: 420px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
       justify-content: center;
+      padding: 0.5rem;
     }
 
     .game-container {
@@ -34,6 +64,7 @@
       align-items: center;
       width: 100%;
       max-width: 400px;
+      position: relative;
     }
 
     canvas {
@@ -109,6 +140,60 @@
       font-size: 0.95rem;
       line-height: 1.5;
     }
+
+    .screen-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .screen-overlay.show {
+      display: flex;
+    }
+
+    .overlay-card {
+      width: 100%;
+      max-width: 330px;
+      background: #1f1f1f;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .overlay-title {
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .overlay-text {
+      color: var(--text-light);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+
+    .result-value {
+      color: var(--accent);
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -124,6 +209,27 @@
       <!-- Canvas Game -->
       <canvas id="gameCanvas" width="400" height="600"></canvas>
 
+      <div id="introScreen" class="screen-overlay show" aria-live="polite">
+        <div class="overlay-card">
+          <div class="overlay-title">Як грати</div>
+          <div class="overlay-text">
+            <p>Клік / тап або пробіл: автомобільчик підлітає вгору.</p>
+            <p>Оминай дорожні конуси зверху і знизу.</p>
+            <p>За кожну пройдену пару конусів отримуєш 1 очко.</p>
+          </div>
+          <button class="btn" onclick="beginGameFlow()">Почати</button>
+        </div>
+      </div>
+
+      <div id="resultScreen" class="screen-overlay" aria-live="polite">
+        <div class="overlay-card">
+          <div class="overlay-title">Результат</div>
+          <div class="result-row"><span>Очки:</span><span class="result-value" id="resultScore">0</span></div>
+          <div class="result-row"><span>Рекорд:</span><span class="result-value" id="resultBest">0</span></div>
+          <button class="btn" onclick="beginGameFlow()">Спробувати ще</button>
+        </div>
+      </div>
+
       <!-- Game Info -->
       <div class="game-info">
         <div class="score-display">Очки: <span id="currentScore">0</span></div>
@@ -133,7 +239,7 @@
       <!-- Game Controls -->
       <div class="game-controls">
         <div class="button-group">
-          <button class="btn" id="startBtn" onclick="startGame()">Почати гру</button>
+          <button class="btn" id="startBtn" onclick="beginGameFlow()">Почати гру</button>
           <button class="btn btn-secondary" onclick="togglePause()" id="pauseBtn" style="display: none;">Пауза</button>
         </div>
       </div>
@@ -154,9 +260,9 @@
       <div class="instructions">
         <div class="instructions-title">📌 Як грати</div>
         <div class="instructions-text">
-          <p>🖱️ <strong>Клік / Тап</strong> — машина піднімається</p>
-          <p>⬆️ Уникай перешкод та летай якомога далі</p>
-          <p>🎯 Зібирай очки за кожен пройдений блок</p>
+          <p>🖱️ <strong>Клік / Тап</strong> — крилатий автомобільчик підлітає вгору</p>
+          <p>🚧 Оминай дорожні конуси зверху та знизу, як у Flappy Bird</p>
+          <p>🎯 Збирай очки за кожну успішно пройдену пару конусів</p>
         </div>
       </div>
     </div>
