@@ -258,6 +258,68 @@ input::placeholder {
   font-size: 0.95rem;
 }
 
+.scenario-table {
+  margin-top: 0.75rem;
+}
+
+.scenario-table th,
+.scenario-table td {
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.chart-container {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.15));
+  padding: 0.5rem;
+}
+
+#savingsChart {
+  width: 100%;
+  height: 280px;
+  display: block;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-optimistic {
+  background-color: #4ad66d;
+}
+
+.dot-base {
+  background-color: var(--accent);
+}
+
+.dot-pessimistic {
+  background-color: #ff6b6b;
+}
+
+.dot-payback {
+  background-color: #58a6ff;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

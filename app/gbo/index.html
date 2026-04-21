@@ -103,6 +103,126 @@
           <small class="text-muted mt-1">Додаткові витрати на прогрів газу</small>
         </div>
 
+        <!-- Річний пробіг -->
+        <div class="form-group">
+          <label for="annualMileage">Річний пробіг (км)</label>
+          <input
+            type="number"
+            id="annualMileage"
+            placeholder="Наприклад: 15000"
+            min="100"
+            step="100"
+            required
+          >
+        </div>
+
+        <!-- ТО на рік -->
+        <div class="form-group">
+          <label for="annualMaintenance">ТО ГБО на рік (грн)</label>
+          <input
+            type="number"
+            id="annualMaintenance"
+            placeholder="Наприклад: 2000"
+            min="0"
+            step="100"
+          >
+          <small class="text-muted mt-1">Планові щорічні витрати на обслуговування ГБО</small>
+        </div>
+
+        <!-- Інтервальне ТО -->
+        <div class="card" style="background-color: var(--bg-dark); border-color: var(--border-color); margin-bottom: 1.5rem;">
+          <h3 class="mb-2 text-accent">Інтервальне ТО</h3>
+
+          <div class="form-group">
+            <label for="filterServiceCost">Фільтри (грн за одне ТО)</label>
+            <input
+              type="number"
+              id="filterServiceCost"
+              placeholder="Наприклад: 800"
+              min="0"
+              step="50"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="filterServiceInterval">Інтервал фільтрів (км)</label>
+            <input
+              type="number"
+              id="filterServiceInterval"
+              placeholder="Наприклад: 10000"
+              min="1000"
+              step="500"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="diagnosticServiceCost">Діагностика (грн за одне ТО)</label>
+            <input
+              type="number"
+              id="diagnosticServiceCost"
+              placeholder="Наприклад: 1200"
+              min="0"
+              step="50"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="diagnosticServiceInterval">Інтервал діагностики (км)</label>
+            <input
+              type="number"
+              id="diagnosticServiceInterval"
+              placeholder="Наприклад: 20000"
+              min="1000"
+              step="500"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="majorServiceCost">Редуктор/форсунки (грн за сервіс)</label>
+            <input
+              type="number"
+              id="majorServiceCost"
+              placeholder="Наприклад: 10000"
+              min="0"
+              step="100"
+            >
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="majorServiceInterval">Інтервал редуктора/форсунок (км)</label>
+            <input
+              type="number"
+              id="majorServiceInterval"
+              placeholder="Наприклад: 80000"
+              min="1000"
+              step="1000"
+            >
+          </div>
+        </div>
+
+        <!-- Сценарії цін -->
+        <div class="form-group">
+          <label for="scenarioSpread">Розкид цін для сценаріїв (%)</label>
+          <input
+            type="number"
+            id="scenarioSpread"
+            placeholder="Введіть відсоток, наприклад: 10"
+            min="0"
+            max="50"
+            step="1"
+            required
+          >
+          <small class="text-muted mt-1">Введіть одне число у відсотках: 5, 10 або 15. Оптимістичний: бензин +X%, газ -X%. Песимістичний: бензин -X%, газ +X%.</small>
+          <small id="scenarioPreview" class="text-muted mt-1"></small>
+        </div>
+
+        <div class="card" style="background-color: var(--bg-dark); border-color: var(--border-color); margin-bottom: 1.5rem;">
+          <h3 class="mb-2 text-accent">Як читати сценарії</h3>
+          <p class="text-muted mb-1"><strong>Базовий:</strong> ціни без змін, це основний референсний розрахунок.</p>
+          <p class="text-muted mb-1"><strong>Оптимістичний:</strong> бензин дорожчий, газ дешевший на вказаний відсоток. Окупність зазвичай настає швидше.</p>
+          <p class="text-muted"><strong>Песимістичний:</strong> бензин дешевший, газ дорожчий на вказаний відсоток. Окупність зазвичай повільніша.</p>
+        </div>
+
         <!-- Calculate Button -->
         <button type="submit" class="btn btn-block mb-2">Розрахувати</button>
         <button type="button" class="btn btn-secondary btn-block" onclick="clearForm()">Очистити</button>
@@ -114,7 +234,46 @@
         <div id="resultValue" class="result-value">-</div>
         <div class="result-label mt-2">
           <div>Економія на 1км: <span id="savingsPerKm" class="text-accent">-</span> грн</div>
-          <div class="mt-1">Річна економія (15000км): <span id="annualSavings" class="text-accent">-</span> грн</div>
+          <div class="mt-1">Витрати ТО на 1км: <span id="maintenancePerKm" class="text-accent">-</span> грн</div>
+          <div class="mt-1">Річна економія (<span id="annualMileageValue">15000</span>км): <span id="annualSavings" class="text-accent">-</span> грн</div>
+        </div>
+
+        <div class="mt-3">
+          <div class="result-label">Сценарії цін</div>
+          <table class="scenario-table">
+            <thead>
+              <tr>
+                <th>Сценарій</th>
+                <th>Окупність</th>
+                <th>Річна економія</th>
+              </tr>
+            </thead>
+            <tbody id="scenarioTableBody">
+              <tr>
+                <td colspan="3" class="text-muted">Натисніть "Розрахувати"</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-3">
+          <div class="result-label">Накопичена економія за пробігом</div>
+          <div class="form-group" style="margin: 0.5rem 0 0.75rem;">
+            <label for="chartMode">Вісь X</label>
+            <select id="chartMode">
+              <option value="km">Пробіг (км)</option>
+              <option value="months">Час (місяці)</option>
+            </select>
+          </div>
+          <div id="chartContainer" class="chart-container">
+            <svg id="savingsChart" viewBox="0 0 560 280" preserveAspectRatio="none" aria-label="Графік накопиченої економії"></svg>
+          </div>
+          <div class="chart-legend">
+            <span><i class="dot dot-optimistic"></i>Оптимістичний</span>
+            <span><i class="dot dot-base"></i>Базовий</span>
+            <span><i class="dot dot-pessimistic"></i>Песимістичний</span>
+            <span><i class="dot dot-payback"></i>Точка окупності (базова)</span>
+          </div>
         </div>
       </div>
 
@@ -123,7 +282,7 @@
         <h3 class="mb-2 text-accent">ℹ️ Як це працює?</h3>
         <p class="text-muted mb-1"><strong>Формула розрахунку:</strong></p>
         <p class="text-muted" style="font-family: monospace; font-size: 0.9rem;">
-          Економія = (ЦінаБензину × В/100) - ((ЦінаГазу × В/100 × 1.2) + ВитратиПрогріву)
+          Економія = (ЦінаБензину × В/100) - ((ЦінаГазу × В/100 × 1.2) + Прогрів + ТО_рік/Пробіг_рік + Σ(ТО_інтервал/Інтервал_км))
         </p>
         <p class="text-muted mb-1 mt-2">Де В — витрати пального (л/100км)</p>
         <p class="text-muted">Коефіцієнт 1.2 — газ споживається на 20% більше за об'ємом</p>
