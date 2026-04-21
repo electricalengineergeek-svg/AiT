@@ -1,8 +1,16 @@
 /* ===== Telegram Web App Initialization ===== */
 
 // Initialize Telegram Web App
-const tg = window.Telegram.WebApp;
+const tg = window.Telegram?.WebApp || null;
 const GOOGLE_ANALYTICS_ID = 'G-GY091TN67D';
+
+/**
+ * Check whether app is opened inside Telegram Mini App container.
+ * @returns {boolean}
+ */
+function isTelegramMiniApp() {
+  return Boolean(tg && tg.initData);
+}
 
 /* ===== Google Analytics ===== */
 
@@ -33,6 +41,10 @@ function initGoogleAnalytics() {
  * Initialize Telegram Mini App
  */
 function initTelegramApp() {
+  if (!tg) {
+    return;
+  }
+
   tg.ready();
   tg.expand();
 
@@ -54,7 +66,7 @@ function initTelegramApp() {
  * @returns {string} First name or "Користувач" if not available
  */
 function getUserName() {
-  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+  if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
     return tg.initDataUnsafe.user.first_name || 'Користувач';
   }
   return 'Користувач';
@@ -65,7 +77,7 @@ function getUserName() {
  * @returns {number|null} User ID or null
  */
 function getUserId() {
-  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+  if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
     return tg.initDataUnsafe.user.id;
   }
   return null;
@@ -132,6 +144,10 @@ function clearAllData() {
  * @param {Function} onBack - Callback when back button is pressed
  */
 function setupBackButton(onBack) {
+  if (!tg || !tg.BackButton) {
+    return;
+  }
+
   tg.BackButton.onClick(onBack);
   tg.BackButton.show();
 }
@@ -140,14 +156,18 @@ function setupBackButton(onBack) {
  * Hide back button
  */
 function hideBackButton() {
-  tg.BackButton.hide();
+  if (tg && tg.BackButton) {
+    tg.BackButton.hide();
+  }
 }
 
 /**
  * Show back button
  */
 function showBackButton() {
-  tg.BackButton.show();
+  if (tg && tg.BackButton) {
+    tg.BackButton.show();
+  }
 }
 
 /**
@@ -213,7 +233,7 @@ function formatNumber(value, decimals = 0) {
  * @param {string} type - Type: 'success', 'error', 'info'
  */
 function showNotification(message, type = 'info') {
-  if (tg.showAlert) {
+  if (tg && tg.showAlert) {
     tg.showAlert(message);
   } else {
     alert(message);
@@ -227,7 +247,7 @@ function showNotification(message, type = 'info') {
  * @param {Function} onCancel - Callback if cancelled
  */
 function showConfirm(message, onConfirm, onCancel = null) {
-  if (tg.showConfirm) {
+  if (tg && tg.showConfirm) {
     tg.showConfirm(message, (result) => {
       if (result) {
         onConfirm();
@@ -250,7 +270,7 @@ function showConfirm(message, onConfirm, onCancel = null) {
  * @param {Function} onError - Callback on error
  */
 function requestPhoneNumber(onSuccess, onError = null) {
-  if (tg.requestContact) {
+  if (tg && tg.requestContact) {
     tg.requestContact((contact) => {
       if (contact) {
         onSuccess(contact.phone_number);
@@ -269,7 +289,9 @@ function requestPhoneNumber(onSuccess, onError = null) {
  * Close the Mini App
  */
 function closeApp() {
-  tg.close();
+  if (tg && tg.close) {
+    tg.close();
+  }
 }
 
 /* ===== Init on page load ===== */

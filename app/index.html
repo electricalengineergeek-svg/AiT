@@ -39,6 +39,7 @@
   <div class="container main-content">
     <!-- Greeting -->
     <div id="greeting" class="mb-4"></div>
+    <div id="launchModeHint" class="card mb-4" style="display: none;"></div>
 
     <!-- Main Menu -->
     <h2 class="mb-4 text-center">Виберіть інструмент</h2>
@@ -87,6 +88,12 @@
     document.addEventListener('DOMContentLoaded', function() {
       const userName = getUserName();
       document.getElementById('greeting').textContent = `Привіт, ${userName}!`;
+
+      if (!isTelegramMiniApp()) {
+        const hint = document.getElementById('launchModeHint');
+        hint.style.display = 'block';
+        hint.innerHTML = 'Зараз відкрито веб-версію. Для режиму Telegram Mini App запусти застосунок із кнопки меню твого бота в Telegram.';
+      }
     });
   </script>
 </body>
