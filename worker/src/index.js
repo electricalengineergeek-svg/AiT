@@ -220,6 +220,59 @@ async function getUserBestGameScore(env, gameKey, userId) {
   return rows[0] || null;
 }
 
+function parseContentRangeCount(contentRange) {
+  if (typeof contentRange !== 'string') {
+    return null;
+  }
+
+  const slashIndex = contentRange.lastIndexOf('/');
+  if (slashIndex < 0) {
+    return null;
+  }
+
+  const rawCount = contentRange.slice(slashIndex + 1);
+  const count = Number(rawCount);
+  return Number.isFinite(count) ? count : null;
+}
+
+async function getUserGameRank(env, gameKey, userBest) {
+  if (!userBest || !Number.isFinite(Number(userBest.score)) || !userBest.created_at) {
+    return null;
+  }
+
+  const endpointBase = env.SUPABASE_URL.replace(/\/+$/, '');
+  const score = Math.floor(Number(userBest.score));
+  const createdAt = String(userBest.created_at);
+  const strictBetterFilter = `(score.gt.${score},and(score.eq.${score},created_at.lt.${createdAt}))`;
+  const endpoint = `${endpointBase}/rest/v1/telegram_game_scores` +
+    `?select=user_id` +
+    `&game_key=eq.${encodeURIComponent(gameKey)}` +
+    `&or=${encodeURIComponent(strictBetterFilter)}` +
+    `&limit=1`;
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      ...supabaseHeaders(env),
+      Prefer: 'count=exact'
+    }
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Supabase user rank fetch failed (${response.status}): ${text}`);
+  }
+
+  const contentRange = response.headers.get('content-range');
+  const betterCount = parseContentRangeCount(contentRange);
+
+  if (!Number.isFinite(betterCount)) {
+    return null;
+  }
+
+  return betterCount + 1;
+}
+
 async function parseAndVerifyTelegramUser(body, env) {
   const initData = body?.init_data;
   if (!initData || typeof initData !== 'string') {
@@ -307,6 +360,7 @@ async function handleGameScoreSummary(body, env, allowedOrigin) {
       getTopGameScores(env, gameKey, limit),
       getUserBestGameScore(env, gameKey, user.id)
     ]);
+    const userPlace = await getUserGameRank(env, gameKey, userBest);
 
     const globalBest = topScores.length > 0 ? topScores[0].score : null;
 
@@ -314,6 +368,7 @@ async function handleGameScoreSummary(body, env, allowedOrigin) {
       ok: true,
       game_key: gameKey,
       top_scores: topScores,
+      user_place: userPlace,
       user_best: userBest ? userBest.score : null,
       global_best: globalBest
     }, 200, allowedOrigin);

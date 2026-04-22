@@ -303,6 +303,26 @@
       list-style: none;
       margin-left: -1.25rem;
     }
+
+    .user-place-row {
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px dashed var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-light);
+      font-size: 0.92rem;
+    }
+
+    .user-place-label {
+      color: var(--text-muted);
+    }
+
+    .user-place-value {
+      color: var(--accent);
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -342,10 +362,14 @@
           </div>
 
           <div class="leaderboard">
-            <div class="leaderboard-title">Топ гравців</div>
+            <div class="leaderboard-title">Топ 10 гравців</div>
             <ol class="leaderboard-list" id="leaderboardList">
               <li class="leaderboard-empty">Ще немає результатів</li>
             </ol>
+            <div class="user-place-row" aria-live="polite">
+              <span class="user-place-label">Ваше місце:</span>
+              <span class="user-place-value" id="userPlaceValue">-</span>
+            </div>
           </div>
 
           <button class="btn" onclick="beginGameFlow()">Спробувати ще</button>

@@ -12,7 +12,7 @@ const OBSTACLE_SPAWN_RATE = 105; // frames between spawns
 const SAFE_MARGIN = 95;
 const BASE_FRAME_MS = 1000 / 60;
 const GAME_KEY = 'flappy_car';
-const LEADERBOARD_LIMIT = 5;
+const LEADERBOARD_LIMIT = 10;
 
 const EASY_GAP_SIZE = 252;
 const HARD_GAP_SIZE = 208;
@@ -78,6 +78,19 @@ function renderLeaderboard(scores) {
     item.textContent = `${medal}${name} - ${entry.score}`;
     leaderboardList.appendChild(item);
   });
+}
+
+/**
+ * Render current user place after leaderboard.
+ * @param {number|null} place - Current user place in global leaderboard
+ */
+function renderUserPlace(place) {
+  const value = document.getElementById('userPlaceValue');
+  if (!value) {
+    return;
+  }
+
+  value.textContent = Number.isFinite(place) && place > 0 ? String(place) : '-';
 }
 
 /**
@@ -149,6 +162,7 @@ async function syncScoreSummary(shouldSubmitScore = false) {
   const resultGlobalBest = document.getElementById('resultGlobalBest');
 
   renderResultTrophy(null);
+  renderUserPlace(null);
 
   if (resultBest) {
     resultBest.textContent = String(gameState.bestScore);
@@ -182,7 +196,10 @@ async function syncScoreSummary(shouldSubmitScore = false) {
 
     const topScores = Array.isArray(summary.top_scores) ? summary.top_scores : [];
     renderLeaderboard(topScores);
-    renderResultTrophy(getCurrentUserPlace(topScores));
+    const fallbackPlace = getCurrentUserPlace(topScores);
+    const userPlace = Number.isFinite(summary.user_place) ? summary.user_place : fallbackPlace;
+    renderResultTrophy(userPlace);
+    renderUserPlace(userPlace);
   } catch (error) {
     console.warn('Score sync failed:', error);
   }
