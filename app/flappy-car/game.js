@@ -57,10 +57,12 @@ function renderLeaderboard(scores) {
     return;
   }
 
-  scores.forEach((entry) => {
+  scores.forEach((entry, index) => {
     const item = document.createElement('li');
     const name = entry.first_name || entry.username || 'Гравець';
-    item.textContent = `${name} - ${entry.score}`;
+    const medals = ['🥇', '🥈', '🥉'];
+    const medal = medals[index] ? `${medals[index]} ` : '';
+    item.textContent = `${medal}${name} - ${entry.score}`;
     leaderboardList.appendChild(item);
   });
 }
