@@ -14,6 +14,19 @@ const BASE_FRAME_MS = 1000 / 60;
 const GAME_KEY = 'flappy_car';
 const LEADERBOARD_LIMIT = 5;
 
+const EASY_GAP_SIZE = 252;
+const HARD_GAP_SIZE = 208;
+const EASY_OBSTACLE_SPEED = 2.62;
+const HARD_OBSTACLE_SPEED = 3.72;
+const EASY_SPAWN_RATE = 122;
+const HARD_SPAWN_RATE = 94;
+const MID_SCORE_THRESHOLD = 7;
+const RAMP_START_SCORE = 10;
+const MID_GAP_SIZE = 238;
+const MID_OBSTACLE_SPEED = 2.92;
+const MID_SPAWN_RATE = 114;
+const DIFFICULTY_RAMP_SPAN = 35;
+
 // Canvas and context
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -348,12 +361,186 @@ function drawGameOver() {
 }
 
 /**
+ * Clamp a number to [min, max].
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Linear interpolation.
+ * @param {number} from
+ * @param {number} to
+ * @param {number} t
+ * @returns {number}
+ */
+function lerp(from, to, t) {
+  return from + (to - from) * t;
+}
+
+/**
+ * Resolve current difficulty from score.
+ * First 10 points stay intentionally easy, then difficulty ramps up smoothly.
+ * @param {number} score
+ * @returns {{gapSize:number, obstacleSpeed:number, spawnRate:number}}
+ */
+function getDifficulty(score) {
+  if (score < MID_SCORE_THRESHOLD) {
+    return {
+      gapSize: EASY_GAP_SIZE,
+      obstacleSpeed: EASY_OBSTACLE_SPEED,
+      spawnRate: EASY_SPAWN_RATE
+    };
+  }
+
+  if (score < RAMP_START_SCORE) {
+    return {
+      gapSize: MID_GAP_SIZE,
+      obstacleSpeed: MID_OBSTACLE_SPEED,
+      spawnRate: MID_SPAWN_RATE
+    };
+  }
+
+  const progress = clamp((score - RAMP_START_SCORE) / DIFFICULTY_RAMP_SPAN, 0, 1);
+  return {
+    gapSize: Math.round(lerp(MID_GAP_SIZE, HARD_GAP_SIZE, progress)),
+    obstacleSpeed: lerp(MID_OBSTACLE_SPEED, HARD_OBSTACLE_SPEED, progress),
+    spawnRate: lerp(MID_SPAWN_RATE, HARD_SPAWN_RATE, progress)
+  };
+}
+
+/**
+ * Determine if point is inside rectangle.
+ * @param {number} px
+ * @param {number} py
+ * @param {{x:number,y:number,width:number,height:number}} rect
+ * @returns {boolean}
+ */
+function isPointInRect(px, py, rect) {
+  return px >= rect.x && px <= rect.x + rect.width && py >= rect.y && py <= rect.y + rect.height;
+}
+
+/**
+ * Determine if point lies inside triangle using sign method.
+ * @param {number} px
+ * @param {number} py
+ * @param {{x:number,y:number}} a
+ * @param {{x:number,y:number}} b
+ * @param {{x:number,y:number}} c
+ * @returns {boolean}
+ */
+function isPointInTriangle(px, py, a, b, c) {
+  const d1 = (px - b.x) * (a.y - b.y) - (a.x - b.x) * (py - b.y);
+  const d2 = (px - c.x) * (b.y - c.y) - (b.x - c.x) * (py - c.y);
+  const d3 = (px - a.x) * (c.y - a.y) - (c.x - a.x) * (py - a.y);
+
+  const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+  const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+
+  return !(hasNeg && hasPos);
+}
+
+/**
+ * Get representative points of car hitbox for triangle intersection checks.
+ * @param {{x:number,y:number,width:number,height:number}} carHitBox
+ * @returns {Array<{x:number,y:number}>}
+ */
+function getCarHitPoints(carHitBox) {
+  const left = carHitBox.x;
+  const right = carHitBox.x + carHitBox.width;
+  const top = carHitBox.y;
+  const bottom = carHitBox.y + carHitBox.height;
+  const centerX = left + carHitBox.width / 2;
+  const centerY = top + carHitBox.height / 2;
+
+  return [
+    { x: left, y: top },
+    { x: right, y: top },
+    { x: left, y: bottom },
+    { x: right, y: bottom },
+    { x: centerX, y: top },
+    { x: centerX, y: bottom },
+    { x: left, y: centerY },
+    { x: right, y: centerY },
+    { x: centerX, y: centerY }
+  ];
+}
+
+/**
+ * Cone-accurate collision check against one obstacle.
+ * @param {{x:number,y:number,width:number,height:number}} carHitBox
+ * @param {{x:number,gapStart:number,gapSize?:number}} obstacle
+ * @returns {boolean}
+ */
+function isCollidingWithConeObstacle(carHitBox, obstacle) {
+  const gapSize = obstacle.gapSize || OBSTACLE_GAP;
+  const topConeHeight = obstacle.gapStart;
+  const bottomConeY = obstacle.gapStart + gapSize;
+
+  const broadLeft = obstacle.x - 5;
+  const broadRight = obstacle.x + OBSTACLE_WIDTH + 5;
+  if (carHitBox.x > broadRight || carHitBox.x + carHitBox.width < broadLeft) {
+    return false;
+  }
+
+  const topBaseRect = {
+    x: obstacle.x - 5,
+    y: 0,
+    width: OBSTACLE_WIDTH + 10,
+    height: 12
+  };
+
+  const bottomBaseRect = {
+    x: obstacle.x - 5,
+    y: canvas.height - 12,
+    width: OBSTACLE_WIDTH + 10,
+    height: 12
+  };
+
+  if (checkCollision(carHitBox, topBaseRect) || checkCollision(carHitBox, bottomBaseRect)) {
+    return true;
+  }
+
+  const topTriangle = {
+    a: { x: obstacle.x + OBSTACLE_WIDTH / 2, y: topConeHeight },
+    b: { x: obstacle.x, y: 0 },
+    c: { x: obstacle.x + OBSTACLE_WIDTH, y: 0 }
+  };
+
+  const bottomTriangle = {
+    a: { x: obstacle.x + OBSTACLE_WIDTH / 2, y: bottomConeY },
+    b: { x: obstacle.x, y: canvas.height },
+    c: { x: obstacle.x + OBSTACLE_WIDTH, y: canvas.height }
+  };
+
+  const carPoints = getCarHitPoints(carHitBox);
+  for (const point of carPoints) {
+    if (isPointInTriangle(point.x, point.y, topTriangle.a, topTriangle.b, topTriangle.c) ||
+        isPointInTriangle(point.x, point.y, bottomTriangle.a, bottomTriangle.b, bottomTriangle.c)) {
+      return true;
+    }
+  }
+
+  if (isPointInRect(topTriangle.a.x, topTriangle.a.y, carHitBox) ||
+      isPointInRect(bottomTriangle.a.x, bottomTriangle.a.y, carHitBox)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Update game state
  */
 function update(deltaFrames) {
   if (gameState.paused || !gameState.running) return;
 
   const carHitBox = getCarHitBox(gameState.car);
+  const difficulty = getDifficulty(gameState.score);
 
   // Apply gravity
   gameState.car.velocityY += GRAVITY * deltaFrames;
@@ -373,15 +560,15 @@ function update(deltaFrames) {
   // Spawn new cone obstacles
   gameState.frameCount += deltaFrames;
   gameState.spawnTimer += deltaFrames;
-  while (gameState.spawnTimer >= OBSTACLE_SPAWN_RATE) {
+  while (gameState.spawnTimer >= difficulty.spawnRate) {
     spawnObstacle();
-    gameState.spawnTimer -= OBSTACLE_SPAWN_RATE;
+    gameState.spawnTimer -= difficulty.spawnRate;
   }
 
   // Update obstacles
   for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
     const obstacle = gameState.obstacles[i];
-    obstacle.x -= OBSTACLE_SPEED * deltaFrames;
+    obstacle.x -= difficulty.obstacleSpeed * deltaFrames;
 
     // Remove off-screen obstacles
     if (obstacle.x + OBSTACLE_WIDTH < 0) {
@@ -389,9 +576,7 @@ function update(deltaFrames) {
       continue;
     }
 
-    const hitBoxes = getObstacleHitBoxes(obstacle);
-    if (checkCollision(carHitBox, hitBoxes.top) ||
-        checkCollision(carHitBox, hitBoxes.bottom)) {
+    if (isCollidingWithConeObstacle(carHitBox, obstacle)) {
       endGame();
       return;
     }
@@ -410,11 +595,14 @@ function update(deltaFrames) {
  * Spawn obstacle
  */
 function spawnObstacle() {
-  const gapStart = Math.random() * (canvas.height - OBSTACLE_GAP - SAFE_MARGIN * 2) + SAFE_MARGIN;
+  const difficulty = getDifficulty(gameState.score);
+  const gapSize = difficulty.gapSize;
+  const gapStart = Math.random() * (canvas.height - gapSize - SAFE_MARGIN * 2) + SAFE_MARGIN;
 
   gameState.obstacles.push({
     x: canvas.width,
     gapStart,
+    gapSize,
     scored: false
   });
 }
@@ -425,6 +613,8 @@ function spawnObstacle() {
  * @returns {{top: {x:number,y:number,width:number,height:number}, bottom: {x:number,y:number,width:number,height:number}}}
  */
 function getObstacleHitBoxes(obstacle) {
+  const gapSize = obstacle.gapSize || OBSTACLE_GAP;
+
   return {
     top: {
       x: obstacle.x,
@@ -434,9 +624,9 @@ function getObstacleHitBoxes(obstacle) {
     },
     bottom: {
       x: obstacle.x,
-      y: obstacle.gapStart + OBSTACLE_GAP,
+      y: obstacle.gapStart + gapSize,
       width: OBSTACLE_WIDTH,
-      height: canvas.height - (obstacle.gapStart + OBSTACLE_GAP)
+      height: canvas.height - (obstacle.gapStart + gapSize)
     }
   };
 }
@@ -666,7 +856,8 @@ function draw() {
   // Draw cone obstacles
   gameState.obstacles.forEach(obstacle => {
     const topHeight = obstacle.gapStart;
-    const bottomY = obstacle.gapStart + OBSTACLE_GAP;
+    const gapSize = obstacle.gapSize || OBSTACLE_GAP;
+    const bottomY = obstacle.gapStart + gapSize;
     const bottomHeight = canvas.height - bottomY;
 
     drawTopCone(obstacle.x, topHeight);
