@@ -1,5 +1,6 @@
 const encoder = new TextEncoder();
 const FLAPPY_CAR_GAME_KEY = 'flappy_car';
+const FIRST_PLACE_STICKER_FILE_ID = 'CAACAgIAAxkBAAMTaejlbhFpD31t2gixcbKLP6HHtc4AAh2VAALTgkBLuoP2W5kLKAABOwQ';
 
 function jsonResponse(body, status = 200, origin = '*') {
   return new Response(JSON.stringify(body), {
@@ -197,6 +198,51 @@ async function getTopGameScores(env, gameKey, limit) {
   return response.json();
 }
 
+async function getCurrentGameLeader(env, gameKey) {
+  const topScores = await getTopGameScores(env, gameKey, 1);
+  return topScores[0] || null;
+}
+
+async function callTelegramBotApi(env, method, payload) {
+  const endpoint = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const result = await response.json();
+  if (!response.ok || !result.ok) {
+    const details = result?.description || `HTTP ${response.status}`;
+    throw new Error(`Telegram ${method} failed: ${details}`);
+  }
+
+  return result;
+}
+
+async function announceNewLeader(env, leader, score, gameKey) {
+  const channelId = env.TELEGRAM_ANNOUNCE_CHAT_ID;
+  if (!channelId) {
+    return;
+  }
+
+  const displayName = leader?.first_name || leader?.username || 'Гравець';
+  const gameLabel = gameKey === FLAPPY_CAR_GAME_KEY ? 'Flappy Car' : gameKey;
+
+  await callTelegramBotApi(env, 'sendSticker', {
+    chat_id: channelId,
+    sticker: FIRST_PLACE_STICKER_FILE_ID
+  });
+
+  await callTelegramBotApi(env, 'sendMessage', {
+    chat_id: channelId,
+    text: `Вітаємо! ${displayName} вийшов на 1 місце у ${gameLabel} з результатом ${score} очок!`,
+    disable_web_page_preview: true
+  });
+}
+
 async function getUserBestGameScore(env, gameKey, userId) {
   const endpointBase = env.SUPABASE_URL.replace(/\/+$/, '');
   const endpoint = `${endpointBase}/rest/v1/telegram_game_scores` +
@@ -328,16 +374,32 @@ async function handleSubmitGameScore(body, env, allowedOrigin) {
     return jsonResponse({ ok: false, error: error.message }, 400, allowedOrigin);
   }
 
+  const gameKey = parseGameKey(body?.game_key);
   const row = {
     user_id: user.id,
     username: user.username || null,
     first_name: user.first_name || null,
-    game_key: parseGameKey(body?.game_key),
+    game_key: gameKey,
     score
   };
 
   try {
+    const previousLeader = await getCurrentGameLeader(env, gameKey);
     await upsertGameScoreIfBetter(env, row);
+
+    const currentLeader = await getCurrentGameLeader(env, gameKey);
+    const isLeaderChanged = Boolean(currentLeader) && (
+      !previousLeader || String(previousLeader.user_id) !== String(currentLeader.user_id)
+    );
+
+    if (isLeaderChanged && String(currentLeader.user_id) === String(user.id)) {
+      try {
+        await announceNewLeader(env, currentLeader, currentLeader.score, gameKey);
+      } catch (error) {
+        console.warn('Leader announcement failed:', error);
+      }
+    }
+
     return jsonResponse({ ok: true }, 201, allowedOrigin);
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message }, 502, allowedOrigin);

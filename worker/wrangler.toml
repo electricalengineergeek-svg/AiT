@@ -5,3 +5,4 @@ compatibility_date = "2026-04-21"
 [vars]
 ALLOWED_ORIGIN = "https://electricalengineergeek-svg.github.io"
 MAX_AUTH_AGE_SEC = "86400"
+TELEGRAM_ANNOUNCE_CHAT_ID = "-1003995570900"
