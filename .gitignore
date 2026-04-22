@@ -4,3 +4,4 @@ worker/.dev.vars
 worker/.env
 worker/.env.local
 worker/.wrangler/
+py/*
