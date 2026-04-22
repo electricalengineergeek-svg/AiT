@@ -593,6 +593,28 @@ canvas {
   outline-offset: 2px;
 }
 
+.footer-privacy-link {
+  display: inline-block;
+  margin-top: 0.7rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 0.78rem;
+  opacity: 0.85;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.footer-privacy-link:hover {
+  color: var(--text-light);
+  opacity: 1;
+}
+
+.footer-privacy-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 @keyframes footerLinkPulse {
   0%, 100% {
     box-shadow: 0 8px 20px rgba(243, 156, 18, 0.45);
@@ -727,5 +749,9 @@ canvas {
     .footer-link {
       font-size: 0.95rem;
       padding: 0.5rem 0.95rem;
+    }
+
+    .footer-privacy-link {
+      font-size: 0.74rem;
     }
   }
