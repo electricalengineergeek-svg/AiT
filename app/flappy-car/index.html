@@ -212,6 +212,61 @@
       font-size: 1rem;
     }
 
+    .trophy-row {
+      margin: 0.35rem 0 0.9rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      text-align: center;
+      font-weight: 700;
+      animation: trophyPopIn 0.28s ease;
+    }
+
+    .trophy-row[hidden] {
+      display: none;
+    }
+
+    .trophy-icon {
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+
+    .trophy-gold {
+      color: #ffd86b;
+      border-color: #9a6f17;
+      background: linear-gradient(135deg, rgba(243, 156, 18, 0.22), rgba(243, 156, 18, 0.06));
+      box-shadow: 0 8px 18px rgba(243, 156, 18, 0.18);
+    }
+
+    .trophy-silver {
+      color: #d7dde7;
+      border-color: #8895a8;
+      background: linear-gradient(135deg, rgba(199, 213, 232, 0.2), rgba(199, 213, 232, 0.05));
+      box-shadow: 0 8px 18px rgba(199, 213, 232, 0.15);
+    }
+
+    .trophy-bronze {
+      color: #f0bc8e;
+      border-color: #9f6132;
+      background: linear-gradient(135deg, rgba(205, 127, 50, 0.26), rgba(205, 127, 50, 0.07));
+      box-shadow: 0 8px 18px rgba(205, 127, 50, 0.2);
+    }
+
+    @keyframes trophyPopIn {
+      from {
+        opacity: 0;
+        transform: scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
     .result-value {
       color: var(--accent);
       font-weight: 700;
@@ -281,6 +336,10 @@
           <div class="result-row"><span>Очки:</span><span class="result-value" id="resultScore">0</span></div>
           <div class="result-row"><span>Ваш кращий:</span><span class="result-value" id="resultBest">0</span></div>
           <div class="result-row"><span>Глобальний кращий:</span><span class="result-value" id="resultGlobalBest">-</span></div>
+          <div id="resultTrophyRow" class="trophy-row" hidden aria-live="polite">
+            <span id="resultTrophyIcon" class="trophy-icon" aria-hidden="true">🏆</span>
+            <span id="resultTrophyText">Золотий кубок - 1 місце!</span>
+          </div>
 
           <div class="leaderboard">
             <div class="leaderboard-title">Топ гравців</div>

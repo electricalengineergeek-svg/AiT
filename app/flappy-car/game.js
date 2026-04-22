@@ -66,12 +66,74 @@ function renderLeaderboard(scores) {
 }
 
 /**
+ * Show trophy row for top-3 places.
+ * @param {number|null} place - Current user place in leaderboard
+ */
+function renderResultTrophy(place) {
+  const row = document.getElementById('resultTrophyRow');
+  const icon = document.getElementById('resultTrophyIcon');
+  const text = document.getElementById('resultTrophyText');
+
+  if (!row || !icon || !text) {
+    return;
+  }
+
+  row.classList.remove('trophy-gold', 'trophy-silver', 'trophy-bronze');
+
+  if (place !== 1 && place !== 2 && place !== 3) {
+    row.hidden = true;
+    return;
+  }
+
+  const trophyByPlace = {
+    1: {
+      className: 'trophy-gold',
+      label: 'Золотий кубок',
+      icon: '🏆'
+    },
+    2: {
+      className: 'trophy-silver',
+      label: 'Срібний кубок',
+      icon: '🏆'
+    },
+    3: {
+      className: 'trophy-bronze',
+      label: 'Бронзовий кубок',
+      icon: '🏆'
+    }
+  };
+
+  const trophy = trophyByPlace[place];
+  row.classList.add(trophy.className);
+  icon.textContent = trophy.icon;
+  text.textContent = `${trophy.label} - ${place} місце!`;
+  row.hidden = false;
+}
+
+/**
+ * Resolve current user place by id in top scores list.
+ * @param {Array<{user_id?:number|string}>} scores - Leaderboard rows
+ * @returns {number|null} 1-based place or null
+ */
+function getCurrentUserPlace(scores) {
+  const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  if (!userId || !Array.isArray(scores)) {
+    return null;
+  }
+
+  const index = scores.findIndex((entry) => String(entry.user_id) === String(userId));
+  return index >= 0 ? index + 1 : null;
+}
+
+/**
  * Load score summary from backend and update result screen.
  * Falls back to local best score if backend is unavailable.
  */
 async function syncScoreSummary(shouldSubmitScore = false) {
   const resultBest = document.getElementById('resultBest');
   const resultGlobalBest = document.getElementById('resultGlobalBest');
+
+  renderResultTrophy(null);
 
   if (resultBest) {
     resultBest.textContent = String(gameState.bestScore);
@@ -103,7 +165,9 @@ async function syncScoreSummary(shouldSubmitScore = false) {
       resultGlobalBest.textContent = String(summary.global_best);
     }
 
-    renderLeaderboard(Array.isArray(summary.top_scores) ? summary.top_scores : []);
+    const topScores = Array.isArray(summary.top_scores) ? summary.top_scores : [];
+    renderLeaderboard(topScores);
+    renderResultTrophy(getCurrentUserPlace(topScores));
   } catch (error) {
     console.warn('Score sync failed:', error);
   }
