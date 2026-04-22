@@ -322,10 +322,11 @@ function endGame() {
     gameState.animationFrameId = null;
   }
 
-  const shouldSubmitScore = gameState.score > gameState.bestScore;
+  const isNewLocalBest = gameState.score > gameState.bestScore;
+  const shouldSubmitScore = Number.isFinite(gameState.score) && gameState.score >= 0;
 
   // Update best score
-  if (shouldSubmitScore) {
+  if (isNewLocalBest) {
     gameState.bestScore = gameState.score;
     saveData(FLAPPY_CAR_STORAGE_KEY, gameState.bestScore);
     document.getElementById('bestStat').textContent = gameState.bestScore;

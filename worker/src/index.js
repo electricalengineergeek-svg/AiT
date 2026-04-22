@@ -360,7 +360,12 @@ async function handleGameScoreSummary(body, env, allowedOrigin) {
       getTopGameScores(env, gameKey, limit),
       getUserBestGameScore(env, gameKey, user.id)
     ]);
-    const userPlace = await getUserGameRank(env, gameKey, userBest);
+    let userPlace = null;
+    try {
+      userPlace = await getUserGameRank(env, gameKey, userBest);
+    } catch (error) {
+      console.warn('User rank calculation failed:', error);
+    }
 
     const globalBest = topScores.length > 0 ? topScores[0].score : null;
 
