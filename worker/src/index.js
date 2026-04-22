@@ -395,9 +395,22 @@ async function handleSubmitGameScore(body, env, allowedOrigin) {
     if (isLeaderChanged && String(currentLeader.user_id) === String(user.id)) {
       try {
         await announceNewLeader(env, currentLeader, currentLeader.score, gameKey);
+        console.log('Leader announcement sent', {
+          gameKey,
+          userId: String(user.id),
+          score: currentLeader.score
+        });
       } catch (error) {
         console.warn('Leader announcement failed:', error);
       }
+    } else {
+      console.log('Leader announcement skipped', {
+        gameKey,
+        submitUserId: String(user.id),
+        previousLeaderId: previousLeader ? String(previousLeader.user_id) : null,
+        currentLeaderId: currentLeader ? String(currentLeader.user_id) : null,
+        isLeaderChanged
+      });
     }
 
     return jsonResponse({ ok: true }, 201, allowedOrigin);
