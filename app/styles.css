@@ -206,6 +206,41 @@ input::placeholder {
   font-weight: 600;
 }
 
+.launch-hint-text {
+  color: var(--text-light);
+  line-height: 1.55;
+  text-align: center;
+}
+
+.launch-bot-link {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0.6rem auto 0;
+  color: #1a1a1a;
+  background: var(--accent);
+  border: 1px solid #ffd08a;
+  border-radius: 999px;
+  padding: 0.38rem 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 5px 12px rgba(243, 156, 18, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.launch-bot-link:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(232, 134, 10, 0.45);
+}
+
+.launch-bot-link:focus-visible {
+  outline: 2px solid #fff1cd;
+  outline-offset: 2px;
+}
+
 /* ===== Navigation Cards ===== */
 .nav-card {
   display: flex;
